@@ -35,7 +35,8 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: android-actions/setup-android@v3
+      - name: Android SDK (oldindan o'rnatilgan)
+        run: echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV; echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
 
       - uses: gradle/actions/setup-gradle@v4
         with:
