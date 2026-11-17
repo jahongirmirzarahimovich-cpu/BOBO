@@ -1,0 +1,97 @@
+name: Bobo — APK va kompyuter versiyasi
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: bobo-build
+  cancel-in-progress: true
+
+env:
+  FBV: '10.12.2'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Firebase kutubxonasini yuklash (oflayn ishlash uchun)
+        run: |
+          mkdir -p www/vendor
+          for m in app auth firestore; do
+            curl -fsSL -o www/vendor/firebase-$m-compat.js https://www.gstatic.com/firebasejs/$FBV/firebase-$m-compat.js
+          done
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Veb-ilovani APK ichiga joylash
+        run: |
+          rm -rf android/app/src/main/assets/www
+          mkdir -p android/app/src/main/assets
+          cp -r www android/app/src/main/assets/www
+
+      - name: Imzo kalitini tiklash
+        env:
+          KS: ${{ secrets.BOBO_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KS" ]; then echo "$KS" | base64 -d > android/bobo-release.jks; fi
+
+      - name: APK yig'ish
+        env:
+          BOBO_KEYSTORE: ${{ github.workspace }}/android/bobo-release.jks
+          BOBO_KEYSTORE_PASSWORD: ${{ secrets.BOBO_KEYSTORE_PASSWORD }}
+          BOBO_VERSION_CODE: ${{ github.run_number }}
+          BOBO_VERSION_NAME: 1.0.${{ github.run_number }}
+        run: gradle -p android assembleRelease --no-daemon --stacktrace
+
+      - name: APK nomini o'zgartirish
+        run: cp android/app/build/outputs/apk/release/app-release.apk Bobo.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Bobo-APK
+          path: Bobo.apk
+
+      - name: Release (yuklab olish sahifasi)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: Bobo 1.0.${{ github.run_number }}
+          body: |
+            Bobo — aqlli kassa va ombor.
+            Telefon uchun: Bobo.apk faylini yuklab oling va o'rnating.
+            Kompyuter uchun: GitHub Pages manzilini Chrome/Edge'da ochib «O'rnatish» ni bosing.
+          files: Bobo.apk
+
+      - name: Kompyuter (veb) versiyasini tayyorlash
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: www
+
+  pages:
+    needs: build
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

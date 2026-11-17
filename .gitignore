@@ -1,0 +1,13 @@
+android/.gradle/
+android/build/
+android/app/build/
+android/app/src/main/assets/www/
+www/vendor/
+*.iml
+.idea/
+local.properties
+.kspw
+icon512.png
+maskable512.png
+logo.svg
+android/*.jks

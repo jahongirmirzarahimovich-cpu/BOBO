@@ -1,0 +1,47 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'uz.bobo.kassa'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'uz.bobo.kassa'
+        minSdk 24
+        targetSdk 34
+        versionCode Integer.parseInt(System.getenv('BOBO_VERSION_CODE') ?: '1')
+        versionName System.getenv('BOBO_VERSION_NAME') ?: '1.0'
+    }
+
+    signingConfigs {
+        release {
+            def ks = System.getenv('BOBO_KEYSTORE')
+            def pw = System.getenv('BOBO_KEYSTORE_PASSWORD')
+            if (ks != null && pw != null && !pw.isEmpty() && new File(ks).exists()) {
+                storeFile file(ks)
+                storePassword pw
+                keyAlias 'bobo'
+                keyPassword pw
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            def pw = System.getenv('BOBO_KEYSTORE_PASSWORD')
+            // Doimiy kalit (GitHub secret) bo'lsa — u bilan, bo'lmasa debug kaliti bilan imzolanadi
+            signingConfig (pw != null && !pw.isEmpty()) ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.11.0'
+}
