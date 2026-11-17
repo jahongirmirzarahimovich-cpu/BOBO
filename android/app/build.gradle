@@ -31,8 +31,10 @@ android {
         release {
             minifyEnabled false
             def pw = System.getenv('BOBO_KEYSTORE_PASSWORD')
+            def ks = System.getenv('BOBO_KEYSTORE')
+            boolean hasKey = pw != null && !pw.isEmpty() && ks != null && new File(ks).exists()
             // Doimiy kalit (GitHub secret) bo'lsa — u bilan, bo'lmasa debug kaliti bilan imzolanadi
-            signingConfig (pw != null && !pw.isEmpty()) ? signingConfigs.release : signingConfigs.debug
+            signingConfig = hasKey ? signingConfigs.release : signingConfigs.debug
         }
     }
 
